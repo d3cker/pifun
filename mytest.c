@@ -1,12 +1,12 @@
 /*
     gcc mytest.c -o mytest -lwiringPi -lwiringPiDev
-    Usage: ./mytest "first line" "2nd line"
+    Usage: sudo ./mytest "first line" "2nd line"
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <wiringSerial.h>
+#include <wiringPi.h>
 
 #define LCD_RS  3               //Register select pin
 #define LCD_E   0               //Enable Pin

@@ -1,6 +1,6 @@
 /*
-    gcc mytest.c -o mytest2 -lwiringPi -lwiringPiDev
-    Usage: ./mytest 
+    gcc mytest2.c -o mytest2 -lwiringPi -lwiringPiDev
+    Usage: sudo ./mytest2
 
     Swith:
     GPIO27(GEN2) ------+---[10k]----3.3v 
@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <wiringSerial.h>
 #include <wiringPi.h>
 
 #define LCD_RS  3               //Register select pin
