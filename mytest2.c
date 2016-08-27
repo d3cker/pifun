@@ -2,10 +2,14 @@
     gcc mytest2.c -o mytest2 -lwiringPi -lwiringPiDev
     Usage: sudo ./mytest2
 
-    Swith:
-    GPIO27(GEN2) ------+---[10k]----3.3v 
-                       |
-                       * \*---------|:
+Swithes:
+A)    GPIO21
+B)    GPIO20 ------+---[10k]----+3.3v
+                   |
+                   * \*---------|:
+Leds:
+Blue) GPIO12
+Red)  GPIO16 +---:>|---[470]----|:
 
 */
 #include <stdio.h>
@@ -13,7 +17,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <wiringPi.h>
-
 
 //LCD SetUp
 #define LCD_RS  22             //Register select pin
