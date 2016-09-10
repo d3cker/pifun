@@ -24,6 +24,14 @@ SONAR:
 #include <string.h>
 #include <wiringPi.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+
+
 //LCD SetUp
 #define LCD_RS  22             //Register select pin
 #define LCD_E   17             //Enable Pin
@@ -38,6 +46,7 @@ SONAR:
 #define BLUELED 12
 #define REDLED 16
 
+//SONAR connection
 #define TRIG 05
 #define DATA 06
 
@@ -52,9 +61,10 @@ int startRead = 0;
 int endRead = 0;
 int feedBack = 0;
 int dist = 0;
-struct timeval startT,endT;
-struct timeval startEcho,lastEcho;
+struct timeval startT,endT;         //distance signal length
+struct timeval startEcho,lastEcho;  //ping once per second
 
+//init LCD
 void initLCD() {
   if (lcd = lcdInit (2,16,4,LCD_RS,LCD_E,LCD_D4,LCD_D5,LCD_D6,LCD_D7,0,0,0,0)){
     printf("Failed to init LCD\n");
@@ -62,11 +72,13 @@ void initLCD() {
    }
 }
 
+//all leds to off
 void LedsOff() {
     RedStatus = LOW;
     BlueStatus = LOW;
 }
 
+//PI init (io modes etc)
 void initMyPi() {
     wiringPiSetupGpio();
     initLCD();
@@ -82,14 +94,14 @@ void initMyPi() {
     LedsOff();
 }
 
-
+//trigger SONAR to initiate the measurment
 void trigMeasure() {
     digitalWrite(TRIG,HIGH);
     usleep(10);
     digitalWrite(TRIG,LOW);
 }
 
-
+//get data from SONAR
 int dataRead(){
     while (!endRead) {
         feedBack = digitalRead(DATA);
@@ -112,7 +124,7 @@ int dataRead(){
     return(dist);
 }
 
-
+//main SONAR loop
 int doSonar() {
     startRead = 0;
     endRead = 0;
@@ -120,12 +132,13 @@ int doSonar() {
     return dataRead();
 }
 
-
+//put 16 spaces on line
 void clearLine(int line) {
     lcdPosition(lcd,0,line);
     lcdPuts(lcd,"                ");
 }
 
+//draw simple distance bar
 void drawBar(int maxBar) {
 int bar;
 char cBar[16];
@@ -139,8 +152,24 @@ char cBar[16];
     lcdPrintf(lcd,"%s",cBar);
 }
 
-void main(int argc, char **argv) {
+//display IP
+void displayIp(char *iface_name) {
+int fd;
+struct ifreq ifr;
+int ret;
+    bzero(&ifr,sizeof(ifr));
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET; //ipv4
+    strncpy(ifr.ifr_name, iface_name, 16);
+    ret = ioctl(fd, SIOCGIFADDR, &ifr);
+    close(fd);
+    if(!ret)lcdPrintf(lcd,"%s",inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+    else lcdPrintf(lcd,"%s not found",iface_name);
+}
 
+
+//MAIN loop
+void main(int argc, char **argv) {
     initMyPi();
     while(1) {
 	if(!BS_Status) {
@@ -158,12 +187,12 @@ void main(int argc, char **argv) {
 		    RS_Status = !RS_Status;
 		}
 		lcdPuts(lcd,"DIST: ");
-		//ping every second
+		//ping once per second
 		if(lastEcho.tv_sec - startEcho.tv_sec > 1) {
 		    //draw Distance
 		    digitalWrite(BLUELED, HIGH); 
-		    lcdPrintf(lcd,"%d [cm]  ",doSonar());
 		    startEcho.tv_sec = lastEcho.tv_sec;
+		    lcdPrintf(lcd,"%d [cm]  ",doSonar());
 		    digitalWrite(BLUELED, LOW); 
 		    //draw Bar 
 		    drawBar((dist*16)/200);//from doc , max distance 2m
@@ -178,11 +207,14 @@ void main(int argc, char **argv) {
 		lcdPuts(lcd,"* R = GetIP *  ");
 		BS_Status = 0;
 	    } else {
-		lcdPuts(lcd,"***************");
 		if (!BS_Status) {
 		    lcdClear(lcd);
 		    BS_Status = !BS_Status;
 		}
+		lcdPosition(lcd,0,0);
+		displayIp("wlan0");
+		lcdPosition(lcd,0,1);
+		displayIp("eth0");
 	    }
 	} // END of right switch
     }// END of main while() loop
