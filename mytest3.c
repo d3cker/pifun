@@ -2,6 +2,21 @@
     gcc mytest3.c -o mytest3 -lwiringPi -lwiringPiDev
     Usage: sudo ./mytest3
 
+Swithes:
+A)    GPIO21
+B)    GPIO20 ------+---[10k]----+3.3v
+                   |
+                   * \*---------|:
+Leds:
+Blue) GPIO12
+Red)  GPIO16 +---:>|---[470]----|:
+
+
+SONAR:
+
+      GPIO05 ------------------- Trig
+      GPIO06 ------------------- Echo
+
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,9 +126,20 @@ void clearLine(int line) {
     lcdPuts(lcd,"                ");
 }
 
-void main(int argc, char **argv) {
-int bar,maxBar;
+void drawBar(int maxBar) {
+int bar;
 char cBar[16];
+
+    clearLine(1);
+    lcdPosition(lcd,0,1);
+    if(maxBar>16) maxBar=16;
+    if(maxBar<0) maxBar = 0;
+    bzero(&cBar,sizeof(cBar));
+    for (bar=0; bar< maxBar;bar++) cBar[bar]='#';
+    lcdPrintf(lcd,"%s",cBar);
+}
+
+void main(int argc, char **argv) {
 
     initMyPi();
     while(1) {
@@ -132,23 +158,15 @@ char cBar[16];
 		    RS_Status = !RS_Status;
 		}
 		lcdPuts(lcd,"DIST: ");
+		//ping every second
 		if(lastEcho.tv_sec - startEcho.tv_sec > 1) {
 		    //draw Distance
 		    digitalWrite(BLUELED, HIGH); 
 		    lcdPrintf(lcd,"%d [cm]  ",doSonar());
 		    startEcho.tv_sec = lastEcho.tv_sec;
 		    digitalWrite(BLUELED, LOW); 
-
 		    //draw Bar 
-		    clearLine(1);
-		    lcdPosition(lcd,0,1);
-		    maxBar = ((dist*16)/200); //from docs , max distance 2m
-		    if(maxBar>16) maxBar=16;
-		    if(maxBar<0) maxBar = 0;
-		    bzero(&cBar,sizeof(cBar));
-		    for (bar=0; bar< maxBar;bar++) cBar[bar]='#';
-		    lcdPrintf(lcd,"%s",cBar);
-
+		    drawBar((dist*16)/200);//from doc , max distance 2m
 		}
 		gettimeofday(&lastEcho.tv_sec,NULL);
 	    }
@@ -157,10 +175,10 @@ char cBar[16];
 	lcdPosition(lcd,0,1);
 	if(!RS_Status) {
 	    if(digitalRead(BUTPINA)) {
-		lcdPuts(lcd,"* R = getIP *  ");
+		lcdPuts(lcd,"* R = GetIP *  ");
 		BS_Status = 0;
 	    } else {
-		lcdPuts(lcd,"BS: ON  :: BL: ");
+		lcdPuts(lcd,"***************");
 		if (!BS_Status) {
 		    lcdClear(lcd);
 		    BS_Status = !BS_Status;
