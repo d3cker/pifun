@@ -1,0 +1,10 @@
+[Unit]
+Description=MyTest service.
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/mytest3
+
+[Install]
+WantedBy=multi-user.target
