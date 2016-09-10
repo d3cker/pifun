@@ -1,7 +1,6 @@
 /*
-    gcc mytest2.c -o mytest2 -lwiringPi -lwiringPiDev
-    Usage: sudo ./mytest2
-    * early WIP *
+    gcc mytest3.c -o mytest3 -lwiringPi -lwiringPiDev
+    Usage: sudo ./mytest3
 
 */
 #include <stdio.h>
@@ -33,6 +32,14 @@ int BlueStatus;  //BLUE LED status
 int RS_Status;   //RED switch status
 int BS_Status;   //BLUE switch status
 
+//sonar stuff
+int startRead = 0;
+int endRead = 0;
+int feedBack = 0;
+int dist = 0;
+struct timeval startT,endT;
+struct timeval startEcho,lastEcho;
+
 void initLCD() {
   if (lcd = lcdInit (2,16,4,LCD_RS,LCD_E,LCD_D4,LCD_D5,LCD_D6,LCD_D7,0,0,0,0)){
     printf("Failed to init LCD\n");
@@ -47,23 +54,20 @@ void LedsOff() {
 
 void initMyPi() {
     wiringPiSetupGpio();
-
+    initLCD();
+    lcdClear(lcd);
+    pinMode(BUTPINA,INPUT);
+    pinMode(BUTPINB,INPUT);
+    pinMode(BLUELED,OUTPUT);
+    pinMode(REDLED,OUTPUT);
+    pullUpDnControl(BUTPINA, PUD_UP);
+    pullUpDnControl(BUTPINB, PUD_UP);
     pinMode(TRIG,OUTPUT);
     pinMode(DATA,INPUT);
-
-//    initLCD();
-//    lcdClear(lcd);
-//    pinMode(BUTPINA,INPUT);
-//    pinMode(BUTPINB,INPUT);
-//    pinMode(BLUELED,OUTPUT);
-//    pinMode(REDLED,OUTPUT);
-//    pullUpDnControl(BUTPINA, PUD_UP);
-//    pullUpDnControl(BUTPINB, PUD_UP);
-//    LedsOff();
+    LedsOff();
 }
 
 
-//bieda wersja
 void trigMeasure() {
     digitalWrite(TRIG,HIGH);
     usleep(10);
@@ -71,85 +75,97 @@ void trigMeasure() {
 }
 
 
-int startRead = 0;
-int endRead = 0;
-int feedBack = 0;
-int dist = 0;
-struct timeval startT,endT;
+int dataRead(){
+    while (!endRead) {
+        feedBack = digitalRead(DATA);
+        if(feedBack) {
+	    if(!startRead) { 
+	        gettimeofday(&startT,NULL);
+	        startRead = 1;
+	    }
+	} else {
+	    if(startRead) {
+	        gettimeofday(&endT,NULL);
+	        endRead = 1;
+	    }
+	}
+    }
+    // from doc
+    // distance [cm] = ( high level time [us] * 34 ) / 1000 / 2 
+    dist = ((endT.tv_usec-startT.tv_usec)*34)/1000/2;
+    if(dist>3000 || dist<2) dist=0;
+    return(dist);
+}
 
 
-void main(int argc, char **argv){
-    initMyPi();
-    printf("PING\n");  
-
-    while(1) {
+int doSonar() {
     startRead = 0;
     endRead = 0;
-
     trigMeasure();
-	while (endRead < 1) {
-	    feedBack = digitalRead(DATA);
-	    if(feedBack>0) {
-		if(startRead < 1) { 
-		    gettimeofday(&startT,NULL);
-		    startRead = 1;
-		}
-	    } else {
-		if(startRead > 0) {
-		    gettimeofday(&endT,NULL);
-		    endRead = 1;	
-		}
-	    }
-	}
-
-
-    dist = ((endT.tv_usec-startT.tv_usec)*34)/1000/2;
-    printf("ECHO: %d [cm]                                        \r",dist);
-
-    printf("\n---------\n");
-
-    sleep(1);
-    }
-    
-
-
+    return dataRead();
 }
 
 
+void clearLine(int line) {
+    lcdPosition(lcd,0,line);
+    lcdPuts(lcd,"                ");
+}
 
-
-
-/*
 void main(int argc, char **argv) {
+int bar,maxBar;
+char cBar[16];
+
     initMyPi();
     while(1) {
-	lcdPosition(lcd,0,0);
-	if(digitalRead(BUTPINB)) {
-	    lcdPuts(lcd,"RS: OFF :: RL: ");
-	    RS_Status = 0;
-	} else {
-	    lcdPuts(lcd,"RS: ON  :: RL: ");
-	    if (!RS_Status) {
-		RedStatus = !RedStatus;
-		RS_Status = !RS_Status;
+	if(!BS_Status) {
+	    lcdPosition(lcd,0,0);
+	    if(digitalRead(BUTPINB)) {
+		lcdPuts(lcd,"* L = SONAR *   ");
+		RS_Status = 0;
+		digitalWrite(REDLED, LOW);
+	    } else {
+		lcdPosition(lcd,0,0);
+		digitalWrite(REDLED, HIGH);
+		if (!RS_Status) {
+		    lcdClear(lcd);
+		    gettimeofday(&startEcho,NULL);
+		    RS_Status = !RS_Status;
+		}
+		lcdPuts(lcd,"DIST: ");
+		if(lastEcho.tv_sec - startEcho.tv_sec > 1) {
+		    //draw Distance
+		    digitalWrite(BLUELED, HIGH); 
+		    lcdPrintf(lcd,"%d [cm]  ",doSonar());
+		    startEcho.tv_sec = lastEcho.tv_sec;
+		    digitalWrite(BLUELED, LOW); 
+
+		    //draw Bar 
+		    clearLine(1);
+		    lcdPosition(lcd,0,1);
+		    maxBar = ((dist*16)/200); //from docs , max distance 2m
+		    if(maxBar>16) maxBar=16;
+		    if(maxBar<0) maxBar = 0;
+		    bzero(&cBar,sizeof(cBar));
+		    for (bar=0; bar< maxBar;bar++) cBar[bar]='#';
+		    lcdPrintf(lcd,"%s",cBar);
+
+		}
+		gettimeofday(&lastEcho.tv_sec,NULL);
 	    }
-	}
-	lcdPrintf(lcd,"%d",RedStatus);
+	}// END of left switch
+
 	lcdPosition(lcd,0,1);
-	if(digitalRead(BUTPINA)) {
-	    lcdPuts(lcd,"BS: OFF :: BL: ");
-	    BS_Status = 0;
-	} else {
-	    lcdPuts(lcd,"BS: ON  :: BL: ");
-	    if (!BS_Status) {
-		BlueStatus = !BlueStatus;
-		BS_Status = !BS_Status;
+	if(!RS_Status) {
+	    if(digitalRead(BUTPINA)) {
+		lcdPuts(lcd,"* R = getIP *  ");
+		BS_Status = 0;
+	    } else {
+		lcdPuts(lcd,"BS: ON  :: BL: ");
+		if (!BS_Status) {
+		    lcdClear(lcd);
+		    BS_Status = !BS_Status;
+		}
 	    }
-	}
-	lcdPrintf(lcd,"%d",BlueStatus);
-	//should we sleep here for a while ?
-	digitalWrite(REDLED, RedStatus);
-	digitalWrite(BLUELED, BlueStatus);
-    }
+	} // END of right switch
+    }// END of main while() loop
 }
-*/
