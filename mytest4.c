@@ -101,7 +101,6 @@ void read_dht11_dat()
 	digitalWrite( DHTPIN, HIGH );
 	delayMicroseconds( 40 );
 	pinMode( DHTPIN, INPUT );
-	printf("ping\n");
 	for ( i = 0; i < MAXTIMINGS; i++ )
 	{
 		counter = 0;
@@ -131,16 +130,17 @@ void read_dht11_dat()
 	if ( (j >= 40) &&
 	     (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF) ) )
 	{
-//		f = dht11_dat[2] * 9. / 5. + 32;
-
 		humi[0]=dht11_dat[0];
 		humi[1]=dht11_dat[1];
 		temp[0]=dht11_dat[2];
 		temp[1]=dht11_dat[3];
 
-		printf( "\rHumidity = %d.%d %% Temperature = %d.%d C\n",
-			dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3]);
-		fflush(stdout);
+		//for external parsers
+		FILE *f = fopen("/tmp/sensor.txt", "w");
+		if (f != NULL) {
+		    fprintf(f, "%d.%d ; %d.%d",dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3]);
+		    fclose(f);
+		}
 	}
 }
 
