@@ -8,5 +8,5 @@ mytest2.c  - Switch on/off example with LCD output.
 
 mytest3.c  - Sonar distance measurement and GetIP info for LCD.
 
-
+mytest4.c  - Sonar distance measurement , GetIP , Temperature and Humidity (DHT11) info for LCD.
 
