@@ -1,0 +1,11 @@
+[Unit]
+Description=Sensor i kamera
+After=syslog.target
+
+[Service]
+Type=simple
+WorkingDirectory=/bin/
+ExecStart=/bin/stats.py
+
+[Install]
+WantedBy=multi-user.target
