@@ -1,0 +1,8 @@
+#!/bin/bash
+
+/usr/bin/rrdtool graph /var/www/html/temp1h.png --imgformat PNG --title="Temperatura - ostatnia godzina" --width 320 --height 100 --vertical-label="stopnie Celsjusza" --end now --start end-3600 DEF:temp=/rrd/datatemp.rrd:temp:AVERAGE AREA:temp#60ef60 LINE1:temp#0000ff GPRINT:temp:LAST:"aktualna %2.2lf C" GPRINT:temp:MIN:"min %2.2lf C" GPRINT:temp:MAX:"max %2.2lf C" GPRINT:temp:AVERAGE:"srednia %2.2lf C"
+/usr/bin/rrdtool graph /var/www/html/humi1h.png --imgformat PNG --title="Wilgotność - ostatnia godzina" --width 320 --height 100 --vertical-label="wilgotność" --end now --start end-3600 DEF:humi=/rrd/datahumi.rrd:humi:AVERAGE AREA:humi#6060ef LINE1:humi#000000 GPRINT:humi:LAST:"aktualna %2.2lf" GPRINT:humi:MIN:"min %2.2lf" GPRINT:humi:MAX:"max %2.2lf" GPRINT:humi:AVERAGE:"srednia %2.2lf"
+
+/usr/bin/rrdtool graph /var/www/html/temp1d.png --imgformat PNG --title="Temperatura - wykres dzienny" --width 320 --height 100 --vertical-label="stopnie Celsjusza" --end now --start end-86400 DEF:temp=/rrd/datatemp.rrd:temp:AVERAGE AREA:temp#60ef60 LINE1:temp#0000ff GPRINT:temp:LAST:"aktualna %2.2lf C" GPRINT:temp:MIN:"min %2.2lf C" GPRINT:temp:MAX:"max %2.2lf C" GPRINT:temp:AVERAGE:"srednia %2.2lf C"
+/usr/bin/rrdtool graph /var/www/html/humi1d.png --imgformat PNG --title="Wilgotność - wykres dzienny" --width 320 --height 100 --vertical-label="wilgotność" --end now --start end-86400 DEF:humi=/rrd/datahumi.rrd:humi:AVERAGE AREA:humi#6060ef LINE1:humi#000000 GPRINT:humi:LAST:"aktualna %2.2lf" GPRINT:humi:MIN:"min %2.2lf" GPRINT:humi:MAX:"max %2.2lf" GPRINT:humi:AVERAGE:"srednia %2.2lf"
+
