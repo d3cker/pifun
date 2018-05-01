@@ -9,8 +9,9 @@ import os
 leds=[31,33,35,37]
 blinktime=[0,0,0,0]
 blinkstatus=[False,False,False,False]
-zmienna=["ON","ON","ON","ON"]
-
+zmienna=["OFF","OFF","OFF","OFF"]
+switchpin=[15]
+switchstate=["OFF"]
 
 threads=[]
 
@@ -18,6 +19,19 @@ threads=[]
 def setOut(ledarray):
     for i in range(len(ledarray)):
         GPIO.setup(int(ledarray[i]),GPIO.OUT)
+    return
+
+def handleSwitch(switchnum,tnum):
+    while True:
+        if switchstate[tnum] == "ON":
+	    GPIO.output(int(switchpin[tnum]),GPIO.LOW)
+	    zmienna[2]="ON"
+	    zmienna[3]="OFF"
+	else:
+	    GPIO.output(int(switchpin[tnum]),GPIO.HIGH)
+	    zmienna[2]="OFF"
+	    zmienna[3]="ON"
+	time.sleep(0.1)
     return
 
 
@@ -43,7 +57,7 @@ def handleLed(lednum,tnum):
 #init GPIO and LEDs
 GPIO.setmode(GPIO.BOARD)
 setOut(leds)
-
+setOut(switchpin)
 
 #spawn led threads
 for i in range(len(leds)):
@@ -51,19 +65,23 @@ for i in range(len(leds)):
     threads.append(t)
     t.start()
 
+#spawn switch threads
+for i in range(len(switchpin)):
+    t = threading.Thread(target=handleSwitch, args=(switchpin[i],i,))
+    threads.append(t)
+    t.start()
+
+zmienna[0]="BLINK"
+zmienna[1]="OFF"
+zmienna[2]="OFF"
+zmienna[3]="OFF"
 
 try:
     while True:
-	zmienna[0]="BLINK"
-	zmienna[1]="BLINK"
-	zmienna[2]="BLINK"
-	zmienna[3]="BLINK"
-	time.sleep(1)
-	zmienna[0]="BLINK"
-	zmienna[1]="BLINK"
-	zmienna[2]="BLINK"
-	zmienna[3]="BLINK"
-	time.sleep(1)
+	switchstate[0]="OFF"
+	time.sleep(0.5)
+	switchstate[0]="ON"
+	time.sleep(0.5)
 except KeyboardInterrupt:
     print "bye"
     GPIO.cleanup()
