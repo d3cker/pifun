@@ -62,18 +62,11 @@ def initScreen():
         height = disp.height
         image = Image.new('1', (width, height))
         draw = ImageDraw.Draw(image)
-
-        # Draw a black filled box to clear the image.
         draw.rectangle((0,0,width,height), outline=0, fill=0)
-
-        # Draw some shapes.
-        # First define some constants to allow easy resizing of shapes.
         padding = -2
         top = padding
         bottom = height-padding
-        # Move left to right keeping track of the current x position for drawing shapes.
         x = 0
-        # Load default font.
         font = ImageFont.load_default()
         draw.rectangle((0,0,width,height), outline=0, fill=0)
         draw.text((x, top+18),    "Init....",  font=font, fill=255)
@@ -123,17 +116,32 @@ def handleLed(lednum,tnum):
 	time.sleep(0.1)
     return
 
-
+#save info in /tmp
 def saveData():
     try:
 	file = open("/tmp/sensor.txt","w")
 	file.write(str(humi) + " ; " + str(temp))
 	file.close()
+	file = open("/tmp/fan.txt","w")
+	file.write(str(switchstate[0]))
+	file.close()
     except:
 	print "ooops. File save problem"
     return
 
+#update RRD
 def updateRRD():
+    try:
+	cmd = "/usr/bin/rrdtool update /rrd/datahumi.rrd N:" + str(humi)
+	DUMMYO = subprocess.check_output(cmd, shell = True )
+    except:
+	print "ooops. RRD flood"
+
+    try:
+	cmd = "/usr/bin/rrdtool update /rrd/datatemp.rrd N:" + str(temp)
+	DUMMYO = subprocess.check_output(cmd, shell = True )
+    except:
+	print "ooops. RRD flood"
     return
 
 def handleDHT():
@@ -141,8 +149,8 @@ def handleDHT():
     while True:
 	ledstate[1]="BLINK"
 	humi, temp = Adafruit_DHT.read_retry(11, 17)
-#	print 'Temp: {0} C  Humidity: {1} %'.format(temp, humi)
-	if humi is not None and temp is not None and humi < 100:
+	# added condition because of strange errors 
+	if humi is not None and temp is not None and humi < 100 and temp > 15:
 	    ledstate[0]="OFF"
 	    ledstate[1]="ON"
 	    saveData()
@@ -227,7 +235,7 @@ try:
 	    switchstate[0]="ON"
 	if temp < mintemp:
 	    switchstate[0]="OFF"
-	print 'Temp: {0} C  Humidity: {1} %'.format(temp, humi)
+#	print 'Temp: {0} C  Humidity: {1} %'.format(temp, humi)
 	time.sleep(1)
 
 except KeyboardInterrupt:
@@ -241,7 +249,7 @@ except KeyboardInterrupt:
 finally:
     disp.clear()
     disp.display()
-    clearScreen()
     time.sleep(2)
+    clearScreen()
     GPIO.cleanup()
     os._exit(0)
