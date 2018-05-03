@@ -237,7 +237,6 @@ try:
 	    switchstate[0]="OFF"
 #	print 'Temp: {0} C  Humidity: {1} %'.format(temp, humi)
 	time.sleep(1)
-
 except KeyboardInterrupt:
     print "bye"
     disp.clear()
